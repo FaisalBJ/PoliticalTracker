@@ -8,7 +8,7 @@ const path    = require('path');
 const crypto  = require('crypto');
 
 const app  = express();
-const PORT = parseInt(process.env.PORT, 10) || 3000;
+const PORT = parseInt(process.env.PORT, 10) || 8080;
 
 const CACHE_TTL_MS  = parseInt(process.env.CACHE_TTL_MS, 10)  || 5 * 60 * 1000; // 5 min
 const LOOKBACK_DAYS = parseInt(process.env.LOOKBACK_DAYS, 10) || 90;
@@ -630,7 +630,7 @@ app.get('*', (req, res, next) => {
 
 // ─── START ────────────────────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log('');
   console.log('  ██████  ██    ██  ██████  ██████  ██    ██ ███    ███');
   console.log(' ██    ██ ██    ██ ██    ██ ██   ██ ██    ██ ████  ████');
