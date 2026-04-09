@@ -8,7 +8,7 @@ const path    = require('path');
 const crypto  = require('crypto');
 
 const app  = express();
-const PORT = parseInt(process.env.PORT, 10) || 8080;
+const PORT = process.env.PORT || 8080;
 
 const CACHE_TTL_MS  = parseInt(process.env.CACHE_TTL_MS, 10)  || 5 * 60 * 1000; // 5 min
 const LOOKBACK_DAYS = parseInt(process.env.LOOKBACK_DAYS, 10) || 90;
@@ -630,19 +630,8 @@ app.get('*', (req, res, next) => {
 
 // ─── START ────────────────────────────────────────────────────────────────────
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('');
-  console.log('  ██████  ██    ██  ██████  ██████  ██    ██ ███    ███');
-  console.log(' ██    ██ ██    ██ ██    ██ ██   ██ ██    ██ ████  ████');
-  console.log(' ██    ██ ██    ██ ██    ██ ██████  ██    ██ ██ ████ ██');
-  console.log(' ██ ▄▄ ██ ██    ██ ██    ██ ██   ██ ██    ██ ██  ██  ██');
-  console.log('  ██████   ██████   ██████  ██   ██  ██████  ██      ██');
-  console.log('     ▀▀                     Political Trade Intelligence');
-  console.log('');
-  console.log(`  → http://localhost:${PORT}`);
-  console.log(`  → Primary:  Senate EFTS API | House Clerk eFD`);
-  console.log(`  → Fallback: Community S3 datasets (legacy)`);
-  console.log('');
+app.listen(PORT, "0.0.0.0", () => {
+  console.log("Server running on port " + PORT);
 
   // Warm cache on boot (non-blocking)
   refreshCache().catch(err =>
