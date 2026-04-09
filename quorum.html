@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>QUORUM — Political Trade Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ─── RESET ─────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+
+/* ─── DESIGN TOKENS ──────────────────────────────────── */
+:root{
+  --bg:       #040810;
+  --bg2:      #070D1A;
+  --s1:       #0C1525;
+  --s2:       #111E30;
+  --s3:       #162436;
+  --bd:       #182438;
+  --bd2:      #1E2E44;
+
+  --cyan:     #00E5FF;
+  --cyan-d:   rgba(0,229,255,.08);
+  --cyan-g:   rgba(0,229,255,.20);
+
+  --buy:      #00FF8A;
+  --buy-d:    rgba(0,255,138,.08);
+  --buy-g:    rgba(0,255,138,.18);
+
+  --sell:     #FF3C5A;
+  --sell-d:   rgba(255,60,90,.08);
+  --sell-g:   rgba(255,60,90,.18);
+
+  --alert:    #FFB300;
+  --alert-d:  rgba(255,179,0,.10);
+
+  --dem:      #4D8AFF;
+  --rep:      #FF5C5C;
+
+  --t1:       #EEF4FF;
+  --t2:       #7A90A8;
+  --t3:       #3D5268;
+
+  --sans:     'Space Grotesk',-apple-system,sans-serif;
+  --mono:     'JetBrains Mono','Courier New',monospace;
+
+  --nav-h:    62px;
+  --hdr-h:    52px;
+}
+
+/* ─── BASE ───────────────────────────────────────────── */
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:var(--sans);font-size:14px;line-height:1.4;overscroll-behavior:none;-webkit-font-smoothing:antialiased}
+
+/* ─── SCANLINE TEXTURE ───────────────────────────────── */
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(255,255,255,.012) 3px,rgba(255,255,255,.012) 4px);pointer-events:none;z-index:999}
+
+/* ─── APP SHELL ──────────────────────────────────────── */
+#app{display:flex;flex-direction:column;height:100dvh;max-width:430px;margin:0 auto;position:relative;overflow:hidden;background:var(--bg)}
+
+/* ─── HEADER ─────────────────────────────────────────── */
+.hdr{flex-shrink:0;height:var(--hdr-h);display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:var(--bg);border-bottom:1px solid var(--bd);position:relative;z-index:50}
+
+.logo{display:flex;align-items:center;gap:9px}
+.logo-mark{width:30px;height:30px;background:var(--cyan);border-radius:7px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px var(--cyan-g),0 0 32px rgba(0,229,255,.08);flex-shrink:0}
+.logo-mark svg{width:17px;height:17px;fill:var(--bg)}
+.logo-name{font-family:var(--mono);font-weight:700;font-size:16px;letter-spacing:.16em;color:var(--t1)}
+.logo-sub{font-family:var(--mono);font-size:7.5px;letter-spacing:.18em;color:var(--t3);text-transform:uppercase;line-height:1}
+
+.live-pill{display:flex;align-items:center;gap:5px;background:rgba(0,255,138,.07);border:1px solid rgba(0,255,138,.22);border-radius:100px;padding:4px 9px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--buy)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--buy);animation:pulse-dot 1.6s ease-in-out infinite}
+@keyframes pulse-dot{0%,100%{opacity:1;box-shadow:0 0 0 0 var(--buy-g)}50%{opacity:.5;box-shadow:0 0 0 4px transparent}}
+
+.hdr-actions{display:flex;gap:2px}
+.ico-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:none;background:transparent;color:var(--t2);cursor:pointer;position:relative;transition:background .15s,color .15s}
+.ico-btn:active{background:var(--s2);color:var(--t1)}
+.ico-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.notif-pip{position:absolute;top:7px;right:7px;width:7px;height:7px;background:var(--sell);border-radius:50%;border:1.5px solid var(--bg);animation:pip-pulse 2.5s ease-in-out infinite}
+@keyframes pip-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+
+/* ─── TICKER TAPE ────────────────────────────────────── */
+.tape{flex-shrink:0;height:29px;background:var(--bg2);border-bottom:1px solid var(--bd);display:flex;align-items:center;overflow:hidden;position:relative}
+.tape::before,.tape::after{content:'';position:absolute;top:0;bottom:0;width:40px;z-index:2}
+.tape::before{left:0;background:linear-gradient(to right,var(--bg2) 40%,transparent)}
+.tape::after{right:0;background:linear-gradient(to left,var(--bg2) 40%,transparent)}
+.tape-tag{flex-shrink:0;padding:0 11px;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.14em;color:var(--cyan);border-right:1px solid var(--bd);height:100%;display:flex;align-items:center;position:relative;z-index:3}
+.tape-wrap{flex:1;overflow:hidden;height:100%}
+.tape-scroll{display:flex;align-items:center;height:100%;white-space:nowrap;animation:scroll-tape 45s linear infinite}
+@keyframes scroll-tape{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.tape-item{display:inline-flex;align-items:center;gap:5px;padding:0 18px;font-family:var(--mono);font-size:10.5px;color:var(--t2);border-right:1px solid var(--bd)}
+.ti-tk{font-weight:700;color:var(--t1)}
+.ti-buy{color:var(--buy);font-weight:700}
+.ti-sell{color:var(--sell);font-weight:700}
+.ti-sz{color:var(--t3);font-size:9.5px}
+
+/* ─── STATS BAR ──────────────────────────────────────── */
+.stats{flex-shrink:0;display:flex;height:46px;background:var(--bg2);border-bottom:1px solid var(--bd)}
+.stat{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-right:1px solid var(--bd)}
+.stat:last-child{border-right:none}
+.stat-v{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--t1);line-height:1}
+.stat-v.hot{color:var(--alert)}
+.stat-l{font-size:8px;font-weight:600;letter-spacing:.1em;color:var(--t3);text-transform:uppercase}
+
+/* ─── FILTER BAR ─────────────────────────────────────── */
+.fbar{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--bg);border-bottom:1px solid var(--bd);overflow-x:auto;scrollbar-width:none}
+.fbar::-webkit-scrollbar{display:none}
+.fchip{flex-shrink:0;display:flex;align-items:center;gap:4px;padding:5px 13px;border-radius:100px;border:1px solid var(--bd2);background:var(--s1);font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--t2);cursor:pointer;transition:all .15s;white-space:nowrap;-webkit-user-select:none;user-select:none}
+.fchip:active{transform:scale(.96)}
+.fchip.a-all{background:var(--cyan-d);border-color:var(--cyan);color:var(--cyan)}
+.fchip.a-buy{background:var(--buy-d);border-color:var(--buy);color:var(--buy)}
+.fchip.a-sell{background:var(--sell-d);border-color:var(--sell);color:var(--sell)}
+.fdiv{flex-shrink:0;width:1px;height:20px;background:var(--bd)}
+.fbtn{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:100px;border:1px solid var(--bd2);background:var(--s1);font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--t2);cursor:pointer;text-transform:uppercase;white-space:nowrap}
+.fbtn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ─── FEED ───────────────────────────────────────────── */
+.feed{flex:1;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;scrollbar-width:none;padding-bottom:8px}
+.feed::-webkit-scrollbar{display:none}
+.feed-sec{display:flex;align-items:center;gap:8px;padding:10px 14px 5px;font-size:8.5px;font-weight:700;letter-spacing:.12em;color:var(--t3);text-transform:uppercase}
+.feed-sec::after{content:'';flex:1;height:1px;background:var(--bd)}
+.feed-sec .hot-label{color:var(--alert)}
+
+/* ─── TRADE CARD ─────────────────────────────────────── */
+.card{margin:4px 12px;border-radius:11px;border:1px solid var(--bd);background:var(--s1);cursor:pointer;transition:border-color .15s,transform .1s,box-shadow .15s;position:relative;overflow:hidden;-webkit-user-select:none;user-select:none}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:11px 0 0 11px}
+.card.buy::before{background:var(--buy)}
+.card.sell::before{background:var(--sell)}
+.card:active{transform:scale(.985)}
+.card.buy:active{border-color:rgba(0,255,138,.3);box-shadow:0 0 20px rgba(0,255,138,.05)}
+.card.sell:active{border-color:rgba(255,60,90,.3);box-shadow:0 0 20px rgba(255,60,90,.05)}
+.card.mega{border-color:rgba(255,179,0,.18);background:linear-gradient(135deg,var(--s1) 0%,rgba(255,179,0,.025) 100%)}
+.card.new-in{animation:card-in .4s cubic-bezier(.16,1,.3,1) both}
+@keyframes card-in{from{opacity:0;transform:translateY(-14px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.card.flash::after{content:'';position:absolute;inset:0;background:rgba(0,229,255,.05);border-radius:inherit;animation:flash-out .9s ease forwards;pointer-events:none}
+@keyframes flash-out{0%{opacity:1}100%{opacity:0}}
+
+.cbody{padding:11px 12px 10px 16px;display:flex;align-items:flex-start;gap:8px}
+.cleft{flex:1;min-width:0}
+.cright{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+
+/* Politician row */
+.prow{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+.avatar{width:23px;height:23px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;font-weight:700;flex-shrink:0}
+.avatar.d{background:rgba(77,138,255,.12);color:var(--dem);border:1px solid rgba(77,138,255,.28)}
+.avatar.r{background:rgba(255,92,92,.12);color:var(--rep);border:1px solid rgba(255,92,92,.28)}
+.avatar.i{background:rgba(122,144,168,.12);color:var(--t2);border:1px solid rgba(122,144,168,.28)}
+.pname{font-size:13px;font-weight:600;color:var(--t1);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pmeta{display:flex;align-items:center;gap:3px;flex-shrink:0}
+.mbadge{padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:.06em}
+.mbadge.ch{background:rgba(122,144,168,.1);color:var(--t2)}
+.mbadge.new{background:rgba(0,229,255,.1);color:var(--cyan);border:1px solid rgba(0,229,255,.22);animation:pulse-badge 2s ease-in-out infinite}
+@keyframes pulse-badge{0%,100%{opacity:1}50%{opacity:.55}}
+
+/* Asset row */
+.arow{display:flex;align-items:baseline;gap:8px}
+.ticker{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--t1);line-height:1}
+.co-name{font-size:11px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+
+/* Right column */
+.abadge{padding:3px 9px;border-radius:5px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.07em}
+.abadge.buy{background:var(--buy-d);color:var(--buy);border:1px solid rgba(0,255,138,.22)}
+.abadge.sell{background:var(--sell-d);color:var(--sell);border:1px solid rgba(255,60,90,.22)}
+.tsize{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--t2);white-space:nowrap}
+.tsize.big{color:var(--alert)}
+.ttime{font-family:var(--mono);font-size:10px;color:var(--t3)}
+
+/* Card footer */
+.cfooter{padding:6px 12px 7px 16px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--bd)}
+.sig-label{font-family:var(--mono);font-size:7.5px;font-weight:600;letter-spacing:.1em;color:var(--t3);text-transform:uppercase;flex-shrink:0}
+.sig-dots{display:flex;gap:2px;align-items:center}
+.sdot{width:7px;height:7px;border-radius:1.5px}
+.sdot.b{background:var(--buy)}
+.sdot.s{background:var(--sell)}
+.sdot.e{background:var(--bd2)}
+.disc-date{font-family:var(--mono);font-size:9px;color:var(--t3);margin-left:auto}
+.mega-tag{font-family:var(--mono);font-size:7.5px;font-weight:700;letter-spacing:.08em;color:var(--alert);background:var(--alert-d);padding:1px 6px;border-radius:3px;border:1px solid rgba(255,179,0,.2)}
+
+/* ─── SKELETON ───────────────────────────────────────── */
+.skel{margin:4px 12px;border-radius:11px;border:1px solid var(--bd);background:var(--s1);padding:12px 16px}
+.skel-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.skel-row:last-child{margin-bottom:0}
+.skel-line{height:10px;border-radius:4px;background:linear-gradient(90deg,var(--bd) 25%,var(--bd2) 50%,var(--bd) 75%);background-size:200% 100%;animation:shimmer 1.6s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skel-circ{width:24px;height:24px;border-radius:50%;flex-shrink:0;background:linear-gradient(90deg,var(--bd) 25%,var(--bd2) 50%,var(--bd) 75%);background-size:200% 100%;animation:shimmer 1.6s infinite}
+
+/* ─── BOTTOM NAV ─────────────────────────────────────── */
+.bnav{flex-shrink:0;height:var(--nav-h);background:var(--bg2);border-top:1px solid var(--bd);display:flex;align-items:stretch;padding-bottom:env(safe-area-inset-bottom)}
+.nitem{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:transparent;color:var(--t3);cursor:pointer;position:relative;transition:color .15s}
+.nitem.active{color:var(--cyan)}
+.nitem svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nitem.active svg{filter:drop-shadow(0 0 6px var(--cyan-g))}
+.nlabel{font-size:8.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase}
+.npip{position:absolute;top:8px;right:calc(50% - 16px);width:5px;height:5px;background:var(--sell);border-radius:50%;border:1.5px solid var(--bg2)}
+
+/* ─── OVERLAY ────────────────────────────────────────── */
+.overlay{position:fixed;inset:0;background:rgba(4,8,16,.82);backdrop-filter:blur(5px);z-index:100;opacity:0;pointer-events:none;transition:opacity .25s}
+.overlay.open{opacity:1;pointer-events:all}
+
+/* ─── BOTTOM SHEET BASE ──────────────────────────────── */
+.bsheet{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(105%);width:100%;max-width:430px;background:var(--s1);border-radius:20px 20px 0 0;border:1px solid var(--bd2);border-bottom:none;z-index:101;transition:transform .38s cubic-bezier(.16,1,.3,1);max-height:92dvh;display:flex;flex-direction:column}
+.bsheet.open{transform:translateX(-50%) translateY(0)}
+.sh-handle{display:flex;justify-content:center;padding:12px 0 6px;flex-shrink:0}
+.sh-bar{width:36px;height:4px;border-radius:2px;background:var(--bd2)}
+.sh-hdr{display:flex;align-items:center;padding:2px 14px 14px;gap:10px;flex-shrink:0}
+.sh-close{width:32px;height:32px;border-radius:50%;border:1px solid var(--bd2);background:transparent;color:var(--t2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.sh-close svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round}
+.sh-title{font-size:13px;font-weight:600;color:var(--t2);letter-spacing:.04em;text-transform:uppercase;font-family:var(--mono)}
+
+/* ─── DETAIL SHEET ───────────────────────────────────── */
+.detail-body{padding:0 14px 40px;overflow-y:auto;scrollbar-width:none;flex:1}
+.detail-body::-webkit-scrollbar{display:none}
+.detail-top{display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid var(--bd)}
+.d-ticker{font-family:var(--mono);font-size:38px;font-weight:700;color:var(--t1);line-height:1;margin-bottom:5px}
+.d-company{font-size:13px;color:var(--t2)}
+.d-action-col{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.d-abadge{padding:6px 16px;border-radius:8px;font-family:var(--mono);font-size:14px;font-weight:700;letter-spacing:.06em}
+.d-abadge.buy{background:var(--buy-d);color:var(--buy);border:1px solid rgba(0,255,138,.3);box-shadow:0 0 20px rgba(0,255,138,.08)}
+.d-abadge.sell{background:var(--sell-d);color:var(--sell);border:1px solid rgba(255,60,90,.3);box-shadow:0 0 20px rgba(255,60,90,.08)}
+.d-size{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--t2)}
+.drows{border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.drow{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--bd);background:var(--s1)}
+.drow:last-child{border-bottom:none}
+.drow:nth-child(even){background:var(--bg2)}
+.drow-lbl{font-size:10.5px;font-weight:600;letter-spacing:.07em;color:var(--t3);text-transform:uppercase}
+.drow-val{font-family:var(--mono);font-size:12.5px;font-weight:500;color:var(--t1);text-align:right}
+.drow-val.dem{color:var(--dem)}
+.drow-val.rep{color:var(--rep)}
+.d-sig{display:flex;gap:4px}
+.dsig-dot{width:11px;height:11px;border-radius:2px}
+.dsig-dot.b{background:var(--buy)}
+.dsig-dot.s{background:var(--sell)}
+.dsig-dot.e{background:var(--bd2)}
+.d-cta{padding:13px 14px;border-radius:10px;border:1px solid var(--bd2);background:var(--s2);display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:border-color .15s,background .15s}
+.d-cta:active{border-color:var(--cyan);background:var(--cyan-d)}
+.d-cta-txt{font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--cyan)}
+.d-cta svg{width:15px;height:15px;stroke:var(--cyan);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.d-disclaimer{margin-top:14px;font-size:10px;color:var(--t3);line-height:1.5;text-align:center}
+
+/* ─── FILTER SHEET ───────────────────────────────────── */
+.fsheet-body{padding:0 14px;overflow-y:auto;flex:1;scrollbar-width:none}
+.fsheet-body::-webkit-scrollbar{display:none}
+.fsec-title{font-size:9.5px;font-weight:700;letter-spacing:.12em;color:var(--t3);text-transform:uppercase;margin:16px 0 8px}
+.fopts{display:flex;flex-wrap:wrap;gap:6px}
+.fopt{padding:6px 13px;border-radius:100px;border:1px solid var(--bd2);background:var(--s2);font-size:12px;font-weight:500;color:var(--t2);cursor:pointer;transition:all .15s;-webkit-user-select:none;user-select:none}
+.fopt.sel{border-color:var(--cyan);background:var(--cyan-d);color:var(--cyan)}
+.fopt:active{transform:scale(.95)}
+.apply-btn{margin:18px 14px 32px;padding:14px;border-radius:10px;border:none;background:var(--cyan);color:var(--bg);font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;width:calc(100% - 28px);display:block;transition:opacity .15s}
+.apply-btn:active{opacity:.85}
+.clear-btn{display:block;text-align:center;font-size:12px;color:var(--t3);cursor:pointer;padding:6px;margin-top:-8px}
+
+/* ─── TOAST ──────────────────────────────────────────── */
+.toast-wrap{position:fixed;top:10px;left:50%;transform:translateX(-50%);width:calc(100% - 20px);max-width:410px;z-index:200;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--s3);border:1px solid var(--bd2);border-radius:13px;padding:10px 13px;display:flex;align-items:center;gap:10px;box-shadow:0 12px 40px rgba(0,0,0,.7),0 0 0 1px rgba(0,229,255,.04);pointer-events:all;animation:toast-in .42s cubic-bezier(.16,1,.3,1) both;position:relative;overflow:hidden;cursor:pointer}
+.toast.out{animation:toast-out .28s ease forwards}
+@keyframes toast-in{from{opacity:0;transform:translateY(-18px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes toast-out{to{opacity:0;transform:translateY(-10px) scale(.95)}}
+.toast-stripe{position:absolute;left:0;top:0;bottom:0;width:3px}
+.toast-stripe.buy{background:var(--buy)}
+.toast-stripe.sell{background:var(--sell)}
+.toast-ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
+.toast-ico.buy{background:var(--buy-d)}
+.toast-ico.sell{background:var(--sell-d)}
+.toast-body{flex:1;min-width:0}
+.toast-ttl{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--t2);text-transform:uppercase;margin-bottom:2px}
+.toast-msg{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--t1)}
+.toast-msg .tk{font-weight:700}
+.toast-msg .by{color:var(--buy)}
+.toast-msg .sl{color:var(--sell)}
+.toast-ts{font-family:var(--mono);font-size:10px;color:var(--t3);flex-shrink:0}
+
+/* ─── EMPTY STATE ────────────────────────────────────── */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:60px 20px;color:var(--t3)}
+.empty svg{width:40px;height:40px;stroke:var(--t3);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;opacity:.5}
+.empty-txt{font-size:13px;font-weight:500;color:var(--t3)}
+
+/* ─── INACTIVE NAV SCREEN ────────────────────────────── */
+.placeholder-screen{display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px}
+.placeholder-screen.show{display:flex}
+.ph-label{font-family:var(--mono);font-size:12px;color:var(--t3);letter-spacing:.08em}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── HEADER ───────────────────────────────────── -->
+  <header class="hdr">
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 17 17"><path d="M8.5 1.5C4.6 1.5 1.5 4.6 1.5 8.5s3.1 7 7 7c1.5 0 2.9-.5 4-1.3L14 15.5l1.5-1.5-1.3-1.5c.8-1.1 1.3-2.5 1.3-4C15.5 4.6 12.4 1.5 8.5 1.5zm0 11.5c-2.5 0-4.5-2-4.5-4.5S6 4 8.5 4 13 6 13 8.5 11 13 8.5 13z"/></svg>
+      </div>
+      <div>
+        <div class="logo-name">QUORUM</div>
+        <div class="logo-sub">Intel Terminal</div>
+      </div>
+    </div>
+    <div class="live-pill" id="livePill"><div class="live-dot" id="liveDot"></div><span id="liveLabel">LIVE</span></div>
+    <div class="hdr-actions">
+      <button class="ico-btn" id="notifBtn" title="Alerts">
+        <span class="notif-pip"></span>
+        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </button>
+      <button class="ico-btn" id="openFilter" title="Filters">
+        <svg viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── TICKER TAPE ───────────────────────────────── -->
+  <div class="tape">
+    <div class="tape-tag">SIGNALS</div>
+    <div class="tape-wrap"><div class="tape-scroll" id="tapeScroll"></div></div>
+  </div>
+
+  <!-- ── STATS ─────────────────────────────────────── -->
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="sTotal">—</div><div class="stat-l">Signals</div></div>
+    <div class="stat"><div class="stat-v" id="sToday">—</div><div class="stat-l">Today</div></div>
+    <div class="stat"><div class="stat-v hot" id="sHot">—</div><div class="stat-l">Breaking</div></div>
+    <div class="stat"><div class="stat-v" id="sMembers">—</div><div class="stat-l">Members</div></div>
+  </div>
+
+  <!-- ── FILTER BAR ────────────────────────────────── -->
+  <div class="fbar">
+    <button class="fchip a-all" id="chip-all"  onclick="setFilter('all')">ALL</button>
+    <button class="fchip"       id="chip-buy"  onclick="setFilter('buy')">▲ BUY</button>
+    <button class="fchip"       id="chip-sell" onclick="setFilter('sell')">▼ SELL</button>
+    <div class="fdiv"></div>
+    <button class="fbtn" id="openFilter2">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.5"/><line x1="4" y1="6" x2="7.5" y2="6"/><line x1="10.5" y1="6" x2="20" y2="6"/><circle cx="17" cy="12" r="1.5"/><line x1="4" y1="12" x2="15.5" y2="12"/><line x1="18.5" y1="12" x2="20" y2="12"/><circle cx="11" cy="18" r="1.5"/><line x1="4" y1="18" x2="9.5" y2="18"/><line x1="12.5" y1="18" x2="20" y2="18"/></svg>
+      FILTER
+    </button>
+    <button class="fbtn" id="sortBtn">
+      <svg viewBox="0 0 24 24"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+      SORT
+    </button>
+  </div>
+
+  <!-- ── FEED (visible when Feed tab active) ──────── -->
+  <div class="feed" id="feed">
+    <!-- skeletons while "loading" -->
+    <div id="skeletonZone">
+      <div class="feed-sec">Loading signals…</div>
+      <div class="skel"><div class="skel-row"><div class="skel-circ"></div><div class="skel-line" style="width:55%;"></div><div class="skel-line" style="width:18%;margin-left:auto"></div></div><div class="skel-row"><div class="skel-line" style="width:30%;height:16px"></div><div class="skel-line" style="width:42%"></div></div></div>
+      <div class="skel"><div class="skel-row"><div class="skel-circ"></div><div class="skel-line" style="width:48%;"></div><div class="skel-line" style="width:14%;margin-left:auto"></div></div><div class="skel-row"><div class="skel-line" style="width:28%;height:16px"></div><div class="skel-line" style="width:36%"></div></div></div>
+      <div class="skel"><div class="skel-row"><div class="skel-circ"></div><div class="skel-line" style="width:62%;"></div><div class="skel-line" style="width:20%;margin-left:auto"></div></div><div class="skel-row"><div class="skel-line" style="width:35%;height:16px"></div><div class="skel-line" style="width:44%"></div></div></div>
+    </div>
+    <div id="feedList" style="display:none"></div>
+  </div>
+
+  <!-- ── PLACEHOLDER SCREENS (Watch / Alerts / Profile) -->
+  <div class="placeholder-screen" id="screenWatch">
+    <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    <div class="ph-label">WATCHLIST — COMING SOON</div>
+  </div>
+  <div class="placeholder-screen" id="screenAlerts">
+    <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <div class="ph-label">ALERT ENGINE — COMING SOON</div>
+  </div>
+  <div class="placeholder-screen" id="screenProfile">
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <div class="ph-label">PROFILE — COMING SOON</div>
+  </div>
+
+  <!-- ── BOTTOM NAV ─────────────────────────────────── -->
+  <nav class="bnav">
+    <button class="nitem active" id="nav-feed" onclick="switchTab('feed')">
+      <svg viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+      <span class="nlabel">Feed</span>
+    </button>
+    <button class="nitem" id="nav-watch" onclick="switchTab('watch')">
+      <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <span class="nlabel">Watch</span>
+    </button>
+    <button class="nitem" id="nav-alerts" onclick="switchTab('alerts')">
+      <div class="nav-item-wrap" style="position:relative">
+        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="npip"></span>
+      </div>
+      <span class="nlabel">Alerts</span>
+    </button>
+    <button class="nitem" id="nav-profile" onclick="switchTab('profile')">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="nlabel">Profile</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ── OVERLAY ─────────────────────────────────────── -->
+<div class="overlay" id="overlay" onclick="closeAll()"></div>
+
+<!-- ── TRADE DETAIL SHEET ──────────────────────────── -->
+<div class="bsheet" id="detailSheet">
+  <div class="sh-handle"><div class="sh-bar"></div></div>
+  <div class="sh-hdr">
+    <button class="sh-close" onclick="closeDetail()"><svg viewBox="0 0 15 15"><line x1="2" y1="2" x2="13" y2="13"/><line x1="13" y1="2" x2="2" y2="13"/></svg></button>
+    <span class="sh-title">Trade Signal</span>
+  </div>
+  <div class="detail-body" id="detailBody"></div>
+</div>
+
+<!-- ── FILTER SHEET ────────────────────────────────── -->
+<div class="overlay" id="filterOverlay" onclick="closeFilterSheet()"></div>
+<div class="bsheet" id="filterSheet">
+  <div class="sh-handle"><div class="sh-bar"></div></div>
+  <div class="sh-hdr">
+    <button class="sh-close" onclick="closeFilterSheet()"><svg viewBox="0 0 15 15"><line x1="2" y1="2" x2="13" y2="13"/><line x1="13" y1="2" x2="2" y2="13"/></svg></button>
+    <span class="sh-title">Filter Signals</span>
+  </div>
+  <div class="fsheet-body">
+    <div class="fsec-title">Member</div>
+    <div class="fopts" id="fMember"></div>
+    <div class="fsec-title">Ticker</div>
+    <div class="fopts" id="fTicker"></div>
+    <div class="fsec-title">Trade Size</div>
+    <div class="fopts" id="fSize"></div>
+  </div>
+  <span class="clear-btn" onclick="clearFilters()">Clear all filters</span>
+  <button class="apply-btn" onclick="applyFilters()">APPLY FILTERS</button>
+</div>
+
+<!-- ── TOASTS ──────────────────────────────────────── -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   QUORUM — Real data edition
+   Fetches from Express backend at /api/trades
+   No mock data. No fake timers.
+═══════════════════════════════════════════════════════ */
+
+/* ─── APP STATE ──────────────────────────────────────── */
+let TRADES       = [];          // normalized trade objects from backend
+let knownIds     = new Set();   // IDs already rendered (dedup / new-detection)
+let initialized  = false;       // true after first successful fetch
+let pollTimer    = null;
+
+let activeFilter = 'all';
+let filterMember = [];
+let filterTicker = [];
+let filterSize   = [];
+let activeTab    = 'feed';
+let detailOpen   = false;
+let filterOpen   = false;
+
+const POLL_INTERVAL_MS  = 30_000;  // 30 s
+const BREAKING_THRESHOLD = 7 * 24 * 3600_000; // 7 days from disclosure
+
+/* ─── HELPERS ────────────────────────────────────────── */
+function getInitials(name) {
+  if (!name) return '??';
+  const parts = name.trim()
+    .split(/\s+/)
+    .filter(p => p.length > 1 && !/^(Hon\.|Dr\.|Mr\.|Mrs\.|Ms\.?)$/i.test(p));
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return '??';
+}
+
+function fmtDate(isoStr) {
+  if (!isoStr) return '—';
+  const d = new Date(isoStr);
+  return isNaN(d) ? '—' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function timeAgo(isoStr) {
+  if (!isoStr) return '—';
+  const ms = Date.now() - new Date(isoStr).getTime();
+  const m  = Math.floor(ms / 60_000);
+  if (m < 1)  return 'Just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 3600);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `${d}d ago`;
+  return fmtDate(isoStr);
+}
+
+function truncate(str, max) {
+  if (!str) return '—';
+  return str.length > max ? str.slice(0, max) + '…' : str;
+}
+
+function isBreaking(t) {
+  return Date.now() - new Date(t.disclosedAt).getTime() < BREAKING_THRESHOLD;
+}
+
+function isMega(t) {
+  return t.score >= 5;
+}
+
+/* ─── CONNECTION STATUS ──────────────────────────────── */
+function setStatus(state) {
+  const pill = document.getElementById('livePill');
+  const dot  = document.getElementById('liveDot');
+  const lbl  = document.getElementById('liveLabel');
+  if (!pill) return;
+  const cfg = {
+    live:       { bg:'rgba(0,255,138,.07)',   bc:'rgba(0,255,138,.22)',   col:'var(--buy)',   dot:'var(--buy)',   txt:'LIVE'        },
+    loading:    { bg:'rgba(255,179,0,.07)',   bc:'rgba(255,179,0,.22)',   col:'var(--alert)', dot:'var(--alert)', txt:'LOADING'     },
+    error:      { bg:'rgba(255,60,90,.07)',   bc:'rgba(255,60,90,.22)',   col:'var(--sell)',  dot:'var(--sell)',  txt:'OFFLINE'     },
+    refreshing: { bg:'rgba(0,229,255,.07)',   bc:'rgba(0,229,255,.22)',   col:'var(--cyan)',  dot:'var(--cyan)',  txt:'REFRESHING'  },
+  }[state] || cfg.live;
+  pill.style.cssText    = `background:${cfg.bg};border-color:${cfg.bc};color:${cfg.col}`;
+  if (dot) dot.style.background = cfg.dot;
+  if (lbl) lbl.textContent      = cfg.txt;
+}
+
+/* ─── SIGNAL DOTS ────────────────────────────────────── */
+function sigDots(score, type, el) {
+  let h = '';
+  for (let i = 1; i <= 5; i++) h += `<div class="sdot ${i <= score ? (type==='buy'?'b':'s') : 'e'}"></div>`;
+  el.innerHTML = h;
+}
+function sigDotsD(score, type, el) {
+  let h = '';
+  for (let i = 1; i <= 5; i++) h += `<div class="dsig-dot ${i <= score ? (type==='buy'?'b':'s') : 'e'}"></div>`;
+  el.innerHTML = h;
+}
+
+/* ─── BUILD TRADE CARD ───────────────────────────────── */
+function buildCard(t, slideIn = false, flashIn = false) {
+  const card     = document.createElement('div');
+  const mega     = isMega(t);
+  const breaking = isBreaking(t);
+  const avCls    = t.party === 'D' ? 'd' : t.party === 'R' ? 'r' : 'i';
+  const chamberL = t.chamber === 'SEN' ? 'SEN' : t.chamber === 'INS' ? 'INS' : 'REP';
+
+  card.className  = `card ${t.type}${mega ? ' mega' : ''}${slideIn ? ' new-in' : ''}`;
+  card.dataset.id = t.id;
+
+  card.innerHTML = `
+    <div class="cbody">
+      <div class="cleft">
+        <div class="prow">
+          <div class="avatar ${avCls}">${getInitials(t.name)}</div>
+          <span class="pname">${t.name}</span>
+          <div class="pmeta">
+            <span class="mbadge ch">${chamberL}</span>
+            ${breaking ? '<span class="mbadge new">NEW</span>' : ''}
+          </div>
+        </div>
+        <div class="arow">
+          <span class="ticker">${t.ticker}</span>
+          <span class="co-name">${truncate(t.company, 28)}</span>
+        </div>
+      </div>
+      <div class="cright">
+        <span class="abadge ${t.type}">${t.type.toUpperCase()}</span>
+        <span class="tsize${mega ? ' big' : ''}">${t.sizeLabel}</span>
+        <span class="ttime" data-ts="${t.timestamp}">${timeAgo(t.timestamp)}</span>
+      </div>
+    </div>
+    <div class="cfooter">
+      <span class="sig-label">Signal</span>
+      <div class="sig-dots" data-sig="${t.id}"></div>
+      ${mega ? '<span class="mega-tag">HIGH VALUE</span>' : ''}
+      <span class="disc-date">${fmtDate(t.disclosedAt)}</span>
+    </div>
+  `;
+
+  card.addEventListener('click', () => openDetail(t.id));
+
+  requestAnimationFrame(() => {
+    const dotsEl = card.querySelector(`[data-sig="${t.id}"]`);
+    if (dotsEl) sigDots(t.score, t.type, dotsEl);
+    if (flashIn) card.classList.add('flash');
+  });
+
+  return card;
+}
+
+/* ─── FILTER LOGIC ───────────────────────────────────── */
+function getVisible() {
+  return TRADES.filter(t => {
+    if (activeFilter === 'buy'  && t.type !== 'buy')  return false;
+    if (activeFilter === 'sell' && t.type !== 'sell') return false;
+    if (filterMember.length && !filterMember.includes(t.name))      return false;
+    if (filterTicker.length && !filterTicker.includes(t.ticker))    return false;
+    if (filterSize.length   && !filterSize.includes(t.sizeLabel))   return false;
+    return true;
+  });
+}
+
+/* ─── RENDER FEED (full re-render) ───────────────────── */
+function renderFeed() {
+  const list    = document.getElementById('feedList');
+  list.innerHTML = '';
+  const visible = getVisible();
+
+  if (!visible.length) {
+    list.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span class="empty-txt">No signals match your filters</span>
+    </div>`;
+    return;
+  }
+
+  const breaking = visible.filter(t => isBreaking(t));
+  const older    = visible.filter(t => !isBreaking(t));
+
+  if (breaking.length) {
+    const sh = document.createElement('div');
+    sh.className = 'feed-sec breaking-sec';
+    sh.innerHTML = '<span class="hot-label">⚡ Breaking</span>';
+    list.appendChild(sh);
+    breaking.forEach(t => list.appendChild(buildCard(t)));
+  }
+
+  if (older.length) {
+    const sh = document.createElement('div');
+    sh.className = 'feed-sec';
+    sh.textContent = 'Earlier';
+    list.appendChild(sh);
+    older.forEach(t => list.appendChild(buildCard(t)));
+  }
+}
+
+/* ─── INSERT NEW CARDS WITHOUT FULL RE-RENDER ────────── */
+function insertNewCards(newTrades) {
+  const list    = document.getElementById('feedList');
+  const visible = getVisible();
+  const toShow  = newTrades.filter(t => visible.some(v => v.id === t.id));
+  if (!toShow.length) return;
+
+  // Ensure Breaking section exists at very top
+  let bSec = list.querySelector('.breaking-sec');
+  if (!bSec) {
+    bSec = document.createElement('div');
+    bSec.className = 'feed-sec breaking-sec';
+    bSec.innerHTML = '<span class="hot-label">⚡ Breaking</span>';
+    list.prepend(bSec);
+  }
+
+  // Insert newest at the top (reverse so first in array ends up first in DOM)
+  [...toShow].reverse().forEach(t => {
+    const card = buildCard(t, true, true);
+    bSec.insertAdjacentElement('afterend', card);
+  });
+}
+
+/* ─── STATS ──────────────────────────────────────────── */
+function updateStats() {
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const todayTs    = todayStart.getTime();
+
+  const breaking = TRADES.filter(t => isBreaking(t)).length;
+  const today    = TRADES.filter(t => new Date(t.disclosedAt).getTime() >= todayTs).length;
+  const members  = new Set(TRADES.map(t => t.name)).size;
+
+  animCount('sTotal',   TRADES.length);
+  animCount('sToday',   today);
+  animCount('sHot',     breaking);
+  animCount('sMembers', members);
+}
+
+function animCount(id, target) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let v = parseInt(el.textContent) || 0;
+  if (v === target) return;
+  const tick = () => {
+    v += Math.ceil((target - v) / 4);
+    el.textContent = v;
+    if (v < target) requestAnimationFrame(tick);
+    else el.textContent = target;
+  };
+  requestAnimationFrame(tick);
+}
+
+/* ─── TICKER TAPE ────────────────────────────────────── */
+function buildTape() {
+  const items = TRADES.slice(0, 14);
+  if (!items.length) return;
+  let html = '';
+  for (let pass = 0; pass < 2; pass++) {
+    items.forEach(t => {
+      const cls   = t.type === 'buy' ? 'ti-buy' : 'ti-sell';
+      const arrow = t.type === 'buy' ? '▲' : '▼';
+      const last  = (t.name || '').split(' ').filter(Boolean).pop() || t.name;
+      html += `<div class="tape-item">
+        <span class="ti-tk">${t.ticker}</span>
+        <span class="${cls}">${arrow}</span>
+        <span class="ti-sz">${t.sizeLabel}</span>
+        <span style="color:var(--t3);font-size:9px">· ${last}</span>
+      </div>`;
+    });
+  }
+  document.getElementById('tapeScroll').innerHTML = html;
+}
+
+/* ─── FILTER BAR ─────────────────────────────────────── */
+function setFilter(f) {
+  activeFilter = f;
+  document.getElementById('chip-all').className  = 'fchip' + (f==='all'  ? ' a-all'  : '');
+  document.getElementById('chip-buy').className  = 'fchip' + (f==='buy'  ? ' a-buy'  : '');
+  document.getElementById('chip-sell').className = 'fchip' + (f==='sell' ? ' a-sell' : '');
+  renderFeed();
+}
+
+/* ─── FILTER SHEET ───────────────────────────────────── */
+function populateFilterSheet() {
+  const members = [...new Set(TRADES.map(t => t.name))].sort();
+  const tickers = [...new Set(TRADES.map(t => t.ticker))].sort();
+  const sizes   = [...new Set(TRADES.map(t => t.sizeLabel))].filter(Boolean).sort();
+
+  document.getElementById('fMember').innerHTML = members.map(m =>
+    `<div class="fopt${filterMember.includes(m)?' sel':''}" onclick="toggleFOpt(this,'member','${encodeURIComponent(m)}')">${m}</div>`
+  ).join('');
+
+  document.getElementById('fTicker').innerHTML = tickers.map(tk =>
+    `<div class="fopt${filterTicker.includes(tk)?' sel':''}" onclick="toggleFOpt(this,'ticker','${encodeURIComponent(tk)}')">${tk}</div>`
+  ).join('');
+
+  document.getElementById('fSize').innerHTML = sizes.map(s =>
+    `<div class="fopt${filterSize.includes(s)?' sel':''}" onclick="toggleFOpt(this,'size','${encodeURIComponent(s)}')">${s}</div>`
+  ).join('');
+}
+
+function toggleFOpt(el, type, val) {
+  const v = decodeURIComponent(val);
+  el.classList.toggle('sel');
+  if (type === 'member')      filterMember = toggle(filterMember, v);
+  else if (type === 'ticker') filterTicker = toggle(filterTicker, v);
+  else                        filterSize   = toggle(filterSize,   v);
+}
+
+function toggle(arr, v) {
+  return arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v];
+}
+
+function clearFilters() {
+  filterMember = []; filterTicker = []; filterSize = [];
+  populateFilterSheet();
+}
+
+function openFilterSheet() {
+  filterOpen = true;
+  populateFilterSheet();
+  document.getElementById('filterOverlay').classList.add('open');
+  document.getElementById('filterSheet').classList.add('open');
+}
+
+function closeFilterSheet() {
+  filterOpen = false;
+  document.getElementById('filterOverlay').classList.remove('open');
+  document.getElementById('filterSheet').classList.remove('open');
+}
+
+function applyFilters() {
+  closeFilterSheet();
+  renderFeed();
+}
+
+/* ─── DETAIL MODAL ───────────────────────────────────── */
+function openDetail(id) {
+  const t = TRADES.find(x => x.id === id);
+  if (!t) return;
+  detailOpen = true;
+
+  const partyLbl  = t.party === 'D' ? 'Democrat' : t.party === 'R' ? 'Republican' : 'Independent';
+  const partyCls  = t.party === 'D' ? 'dem'      : t.party === 'R' ? 'rep'        : '';
+  const chamberLbl = t.chamber === 'SEN' ? 'Senator'
+                   : t.chamber === 'INS' ? 'Corporate Insider'
+                   : 'Representative';
+
+  document.getElementById('detailBody').innerHTML = `
+    <div class="detail-top">
+      <div>
+        <div class="d-ticker">${t.ticker}</div>
+        <div class="d-company">${truncate(t.company, 50)}</div>
+      </div>
+      <div class="d-action-col">
+        <span class="d-abadge ${t.type}">${t.type.toUpperCase()}</span>
+        <span class="d-size">${t.sizeLabel}</span>
+      </div>
+    </div>
+    <div class="drows">
+      <div class="drow"><span class="drow-lbl">Member</span><span class="drow-val">${t.name}</span></div>
+      <div class="drow"><span class="drow-lbl">Chamber</span><span class="drow-val">${chamberLbl}</span></div>
+      <div class="drow"><span class="drow-lbl">Party</span><span class="drow-val ${partyCls}">${partyLbl}</span></div>
+      <div class="drow"><span class="drow-lbl">State</span><span class="drow-val">${t.state || '—'}</span></div>
+      <div class="drow"><span class="drow-lbl">Transaction</span><span class="drow-val">${fmtDate(t.timestamp)}</span></div>
+      <div class="drow"><span class="drow-lbl">Disclosed</span><span class="drow-val">${fmtDate(t.disclosedAt)}</span></div>
+      <div class="drow"><span class="drow-lbl">Signal Score</span><div class="drow-val"><div class="d-sig" id="dsig-${id}"></div></div></div>
+    </div>
+    <div class="d-cta">
+      <span class="d-cta-txt">View Official Disclosure →</span>
+      <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    </div>
+    <div class="d-disclaimer">Data sourced from official STOCK Act disclosures.<br>Disclosure delays of up to 45 days are permitted by law.</div>
+  `;
+
+  requestAnimationFrame(() => {
+    const el = document.getElementById(`dsig-${id}`);
+    if (el) sigDotsD(t.score, t.type, el);
+  });
+
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('detailSheet').classList.add('open');
+}
+
+function closeDetail() {
+  detailOpen = false;
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('detailSheet').classList.remove('open');
+}
+
+function closeAll() { closeDetail(); }
+
+/* ─── TOAST NOTIFICATIONS ────────────────────────────── */
+function showToast(t) {
+  const wrap  = document.getElementById('toastWrap');
+  const toast = document.createElement('div');
+  const arrow = t.type === 'buy' ? '↑' : '↓';
+  const emoji = t.type === 'buy' ? '📈' : '📉';
+  const last  = (t.name || '').split(' ').filter(Boolean).pop() || t.name;
+
+  toast.className = 'toast';
+  toast.innerHTML = `
+    <div class="toast-stripe ${t.type}"></div>
+    <div class="toast-ico ${t.type}">${emoji}</div>
+    <div class="toast-body">
+      <div class="toast-ttl">Quorum Signal</div>
+      <div class="toast-msg">
+        <span class="tk">${last}</span> → <span class="tk">${t.ticker}</span>
+        <span class="${t.type}">${arrow} ${t.type.toUpperCase()}</span>
+      </div>
+    </div>
+    <div class="toast-ts">Now</div>
+  `;
+
+  toast.addEventListener('click', () => { removeToast(toast); openDetail(t.id); });
+  wrap.prepend(toast);
+  setTimeout(() => removeToast(toast), 6000);
+  while (wrap.children.length > 3) wrap.removeChild(wrap.lastChild);
+}
+
+function removeToast(el) {
+  if (!el.parentNode) return;
+  el.classList.add('out');
+  setTimeout(() => el.remove(), 320);
+}
+
+/* ─── TAB SWITCHING ──────────────────────────────────── */
+function switchTab(tab) {
+  activeTab = tab;
+  ['feed','watch','alerts','profile'].forEach(t => {
+    document.getElementById(`nav-${t}`).classList.toggle('active', t === tab);
+  });
+  document.getElementById('feed').style.display = tab === 'feed' ? '' : 'none';
+  document.getElementById('screenWatch').classList.toggle('show',   tab === 'watch');
+  document.getElementById('screenAlerts').classList.toggle('show',  tab === 'alerts');
+  document.getElementById('screenProfile').classList.toggle('show', tab === 'profile');
+}
+
+/* ─── SHOW ERROR STATE ───────────────────────────────── */
+function showFetchError(msg) {
+  document.getElementById('skeletonZone').style.display = 'none';
+  document.getElementById('feedList').style.display = '';
+  document.getElementById('feedList').innerHTML = `<div class="empty">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span class="empty-txt" style="text-align:center">${msg || 'Cannot reach data server.<br>Make sure <code>node server.js</code> is running.'}</span>
+  </div>`;
+}
+
+/* ─── API POLLING ────────────────────────────────────── */
+async function fetchAndUpdate() {
+  if (!initialized) setStatus('loading');
+
+  let data;
+  try {
+    const res = await fetch('/api/trades');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = await res.json();
+  } catch (err) {
+    console.error('[QUORUM] Fetch failed:', err.message);
+    setStatus('error');
+    if (!initialized) showFetchError();
+    return;
+  }
+
+  setStatus('live');
+
+  const trades = Array.isArray(data.trades) ? data.trades : [];
+
+  if (!initialized) {
+    // ── First load ──────────────────────────────────────
+    initialized = true;
+    TRADES = trades;
+    trades.forEach(t => knownIds.add(t.id));
+
+    document.getElementById('skeletonZone').style.display = 'none';
+    document.getElementById('feedList').style.display     = '';
+
+    buildTape();
+    renderFeed();
+    updateStats();
+
+    // Kick off recurring poll
+    pollTimer = setInterval(fetchAndUpdate, POLL_INTERVAL_MS);
+
+    // Refresh relative timestamps every 60 s
+    setInterval(() => {
+      document.querySelectorAll('.ttime[data-ts]').forEach(el => {
+        el.textContent = timeAgo(el.dataset.ts);
+      });
+    }, 60_000);
+
+  } else {
+    // ── Subsequent poll — detect genuinely new trades ───
+    const newTrades = trades.filter(t => !knownIds.has(t.id));
+    if (newTrades.length > 0) {
+      newTrades.forEach(t => { knownIds.add(t.id); TRADES.unshift(t); });
+      TRADES.sort((a, b) => new Date(b.disclosedAt) - new Date(a.disclosedAt));
+
+      if (activeTab === 'feed') {
+        insertNewCards(newTrades);
+        updateStats();
+        buildTape();
+      }
+
+      // Toast for up to 2 new trades
+      newTrades.slice(0, 2).forEach(showToast);
+    }
+  }
+}
+
+/* ─── BOOT ───────────────────────────────────────────── */
+(function boot() {
+  document.getElementById('openFilter').addEventListener('click',  openFilterSheet);
+  document.getElementById('openFilter2').addEventListener('click', openFilterSheet);
+  document.getElementById('notifBtn').addEventListener('click',    () => switchTab('alerts'));
+
+  document.getElementById('sortBtn').addEventListener('click', () => {
+    TRADES.sort((a, b) => new Date(b.disclosedAt) - new Date(a.disclosedAt));
+    renderFeed();
+  });
+
+  // Initial fetch
+  fetchAndUpdate();
+})();
+</script>
+</body>
+</html>

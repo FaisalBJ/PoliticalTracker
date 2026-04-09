@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:aletheiaapi.com)",
+      "WebFetch(domain:docs.aletheiaapi.com)",
+      "WebSearch",
+      "WebFetch(domain:api.aletheiaapi.com)",
+      "WebFetch(domain:timhanewich.medium.com)",
+      "WebFetch(domain:publicapi.dev)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:site.financialmodelingprep.com)",
+      "Bash(ls -lh *.json *.js *.html .env*)"
+    ]
+  }
+}
